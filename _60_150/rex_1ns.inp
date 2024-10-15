@@ -1,0 +1,96 @@
+*
+
+DIMENS CHSIZE 3000000 MAXRES 3000000
+
+! Read topology and parameter files
+stream toppar.str
+
+! Read PSF
+open read unit 10 card name step1_pdbreader.psf
+read psf  unit 10 card xplor
+
+!Read Coordinate
+open read unit 10 card name step5.crd
+read coor unit 10 card
+
+
+
+!
+! Setup PBC (Periodic Boundary Condition)
+!
+
+coor stat sele all end
+
+calc xdim = int ( ( ?xmax - ?xmin + 0.0 ) ) + 1
+calc ydim = int ( ( ?ymax - ?ymin + 0.0 ) ) + 1
+calc zdim = int ( ( ?zmax - ?zmin + 0.0 ) ) + 1
+
+
+set bsiz = 0
+if @xdim .gt. @bsiz then
+   set bsiz = @xdim
+endif
+
+if @ydim .gt. @bsiz then
+   set bsiz = @ydim
+endif
+
+if @zdim .gt. @bsiz then
+   set bsiz = @zdim
+endif
+
+
+open read unit 10 card name crystal_image.str
+crystal defi cubic @bsiz @bsiz @bsiz 90. 90. 90.
+crystal build nope 0
+image byres xcen 0.0 ycen 0.0 zcen 0.0 sele all end
+
+
+
+nbonds atom ewald pmewald kappa 0.43 -
+fftx 32 ffty 32 fftz 32 order 4 -
+cutnb 14.0  ctofnb 12.0 ctonnb 10.0 -
+lrc vdw vswitch -
+inbfrq -1 imgfrq -1
+
+
+cons hmcm force 1.0 refx 0.0 refy 0.0 refz 0.0 sele .not. ((segid WAT)) end
+
+shake bonh para sele all end
+
+! replica variables
+set freq = 20000
+set name = ama
+set ntotp = 1000000
+set printstep = 1000
+set lstep = 0.001
+set temp = 300
+set dt = 50
+repd exch nrep 10 freq @freq UNIT 17 -
+temp 300 temp 350 temp 400 temp 450 temp 500 temp 550 temp 600 temp 650 temp 700 temp 750
+open write unit 17 card name 1ns_@{name}_trex.log
+open write unit 1 card name 1ns_@{name}_trex.out
+outu 1
+
+calc temp = @temp + @dt* ?myrep
+open unit 12 write card name 1ns_@{name}_temp@temp.rst
+open unit 13 write unform name 1ns_@{name}_temp@temp.dcd
+open unit 14 write form name 1ns_@{name}_temp@temp.ene
+
+dyna cpt leap start -
+nstep @ntotp timestp @lstep -
+iunread -1 iunwri 12 iuncrd 13 kunit 14 iunvel -1 -
+nprint @printstep iprfrq @printstep ntrfrq @printstep -
+nsavc @printstep nsavv 0 isvfrq @printstep -
+iasors 1 iasvel 1 iscvel 0 ichecw 0 -
+firstt @temp finalt @temp tstruc @temp -
+twindl 0.0 twindh 0.0 -
+echeck 20.0 -
+pcons pmass 500 pref 1 pgamma 0.0 tbath @temp -
+hoover reft @temp tmass 2000 -
+elec atom cdie vdw vatom vswitch -
+ctonnb 10.0 ctofnb 12.0 cutnb 14.0 -
+ewald pmew fftx 32 ffty 32 fftz 32 kappa 0.43 spline order 4 -
+inbfrq -1 imgfrq -1
+
+stop
