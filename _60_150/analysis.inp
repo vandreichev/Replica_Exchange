@@ -1,0 +1,54 @@
+* nvt trialanine
+*
+
+
+bomlev -1
+
+set home /data/andreychev/valerii/sol
+open unit 30 card read name @home/top_all36_prot.rtf
+read rtf card unit 30
+close unit 30
+
+open unit 31 card read name @home/par_all36_prot.prm
+read para card flex unit 31
+close unit 31
+
+stream @home/toppar_water_ions.str
+
+open unit 10 card read name step1_pdbreader.psf
+read psf card unit 10
+close unit 10
+
+open unit 20 card read name step5.crd
+read coor card unit 20
+close unit 20
+
+
+
+open read unform unit 50 name 1ns_ama_temp750.dcd_9
+
+OPEN UNIT 31 WRITE  FORMATTED NAME  60_150_750_phi1_psi1.dat
+OPEN UNIT 32 WRITE  FORMATTED NAME  rep_3_phi2.psi2.dat
+
+! CREATE TIME SERIES BETWEEN A NUMBER OF ATOMS
+
+CORREL MAXSERIES 4 MAXTIMESTEPS 500000 MAXATOM 50
+ENTER phi1  DIHE  PEPT 1 C  PEPT 2 N  PEPT 2 CA PEPT 2 C
+ENTER psi1  DIHE  PEPT 1 N  PEPT 1 CA PEPT 1 C  PEPT 2 N
+
+ENTER phi2  DIHE  PEPT 2 C  PEPT 3 N  PEPT 3 CA PEPT 3 C
+ENTER psi2  DIHE  PEPT 2 N  PEPT 2 CA PEPT 2 C  PEPT 3 N
+
+
+TRAJECTORY FIRSTU 50 NUNIT 1
+SHOW ALL
+EDIT phi1  phi2 VECCODE 2
+EDIT phi2  psi2 VECCODE 2
+
+
+WRITE phi1 psi1 UNIT 31 DUMB
+
+
+END
+
+STOP
